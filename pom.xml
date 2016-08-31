@@ -7,6 +7,46 @@
   <groupId>test</groupId>
   <artifactId>test-app</artifactId>
   <version>1.0-SNAPSHOT</version>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>cassandra.Start</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>cassandra.Start</mainClass>
+            </manifest>
+          </archive>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+        </configuration>
+      </plugin>
+
+    </plugins>
+  </build>
+
   <dependencies>
 
     <!-- https://mvnrepository.com/artifact/org.json/json -->
@@ -29,6 +69,29 @@
       <version>2.7</version>
     </dependency>
 
+    <!-- https://mvnrepository.com/artifact/com.valchkou.datastax/cassandra-driver-mapping -->
+    <dependency>
+      <groupId>com.valchkou.datastax</groupId>
+      <artifactId>cassandra-driver-mapping</artifactId>
+      <version>3.0.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.5</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.sparkjava/spark-core -->
+    <dependency>
+      <groupId>com.sparkjava</groupId>
+      <artifactId>spark-core</artifactId>
+      <version>2.5</version>
+    </dependency>
 
   </dependencies>
 </project>

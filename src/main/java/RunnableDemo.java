@@ -4,7 +4,7 @@ import static java.lang.String.format;
 class RunnableDemo implements Runnable
 {
 
-    private String DNS = "https://52.76.249.178";
+    private String DNS = "";
     private Thread t;
     private String threadName;
 
@@ -13,7 +13,7 @@ class RunnableDemo implements Runnable
     {
         threadName = name;
         this.DNS = dns;
-//        System.out.println( "Creating " + threadName );
+        //        System.out.println( "Creating " + threadName );
     }
 
 
@@ -40,19 +40,40 @@ class RunnableDemo implements Runnable
                 {
                     deleteEnvFromUser();
                 }
-
-//                System.out.println( "Running " + threadName );
-//
-//                System.out.println( "Thread: " + threadName + ", " + i );
-                // Let the thread sleep for a while.
-                Thread.sleep( 1000 );
+                else if ( threadName.equals( "select" ) )
+                {
+                    select();
+                }
+                Thread.sleep( 2000 );
             }
         }
         catch ( InterruptedException e )
         {
-//            System.out.println( "Thread " + threadName + " interrupted." );
+            //            System.out.println( "Thread " + threadName + " interrupted." );
         }
-//        System.out.println( "Thread " + threadName + " exiting." );
+        System.out.println( "requests = " + HTTPUtil.count );
+        System.out.println( "Thread " + DNS + " exiting. " + threadName );
+    }
+
+
+    private void select()
+    {
+        String url = "%s/rest/select";
+        String res = "";
+        try
+        {
+            res = HTTPUtil.get( format( url, DNS ) );
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace();
+        }
+
+        if ( res.length() > 5 )
+        {
+            System.out.println( "---------------------------" );
+            System.out.println( res );
+        }
     }
 
 
@@ -167,26 +188,23 @@ class RunnableDemo implements Runnable
 
     private void createUserWithEnvs()
     {
-        String url = "%s/rest/%s";
+        String url = "%s/rest/users/%s";
         HTTPUtil HTTPUtil = new HTTPUtil();
 
-        for ( int i = 0; i < 5; i++ )
+        try
         {
-            try
-            {
-                HTTPUtil.get( format( url, DNS, "create" ) );
-            }
-            catch ( Exception e )
-            {
-                e.printStackTrace();
-            }
+            HTTPUtil.get( format( url, DNS, "create" ) );
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace();
         }
     }
 
 
     public void start()
     {
-//        System.out.println( "Starting " + threadName );
+        //        System.out.println( "Starting " + threadName );
         if ( t == null )
         {
             t = new Thread( this, threadName );
