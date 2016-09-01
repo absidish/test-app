@@ -53,8 +53,12 @@ public class UserDao
         }
 
         batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, TestUser.TABLE ).value( "id", testUser.getId() )
-                                        .value( "login", testUser.getLogin() ).value( "email", testUser.getEmail() )
-                                        .value( "name", testUser.getName() ) );
+                                        .value( "login", testUser.getLogin() )
+                                        .value( "email", testUser.getEmail() )
+                                        .value( "name", testUser.getName()
+                                                 ) );
+
+
 
         Start.mappingSession.getSession().execute( batchStatement );
         return testUser;

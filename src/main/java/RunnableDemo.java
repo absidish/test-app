@@ -58,7 +58,7 @@ class RunnableDemo implements Runnable
 
     private void select()
     {
-        String url = "%s/rest/select";
+        String url = "%s/rest/health";
         String res = "";
         try
         {
@@ -81,7 +81,7 @@ class RunnableDemo implements Runnable
     {
         String u = "";
         HTTPUtil HTTPUtil = new HTTPUtil();
-        String url = "%s/rest/v5/users";
+        String url = "%s/rest/users";
 
         try
         {
@@ -99,8 +99,12 @@ class RunnableDemo implements Runnable
 
         int userIndex = ( int ) ( 0 + ( Math.random() * ( uu.length - 0 ) ) );
 
-        String urlDel = "%s/rest/delete/%s";
+        String urlDel = "%s/rest/users/%s/delete";
 
+        if ( uu[userIndex].trim().isEmpty() )
+        {
+            return;
+        }
         try
         {
             HTTPUtil.get( format( urlDel, DNS, uu[userIndex].trim() ) );
@@ -117,7 +121,7 @@ class RunnableDemo implements Runnable
 
         String u = "";
         HTTPUtil HTTPUtil = new HTTPUtil();
-        String envsurl = "%s/rest/v5/environments";
+        String envsurl = "%s/rest/environments";
 
         try
         {
@@ -132,8 +136,14 @@ class RunnableDemo implements Runnable
         u = u.replace( "]", "" );
 
         String[] uu = u.split( "," );
-        String url = "%s/rest/env/delete/%s";
+        String url = "%s/rest/environments/%s/delete";
+
         int userId = ( int ) ( 0 + ( Math.random() * ( uu.length - 0 ) ) );
+
+        if ( uu[userId].trim().isEmpty() )
+        {
+            return;
+        }
 
         try
         {

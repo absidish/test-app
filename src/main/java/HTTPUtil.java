@@ -14,7 +14,7 @@ public class HTTPUtil
     {
         count++;
         SSLUtil.disableCertificateValidation();
-//        System.out.println( "url =" + url );
+        System.out.println( "url =" + url );
         URL obj = new URL( url );
 
         HttpURLConnection con = ( HttpURLConnection ) obj.openConnection();
