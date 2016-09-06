@@ -5,6 +5,6 @@
 /source/test-app/src/main/java/RunnableDemo.java
 /source/test-app/src/main/java/Main.java
 /source/test-app/src/main/java/cassandra/CassandraConnector.java
+/source/test-app/src/main/java/cassandra/User.java
 /source/test-app/src/main/java/controller/EnvironmentDao.java
-/source/test-app/src/main/java/cassandra/TestUser.java
 /source/test-app/src/main/java/cassandra/Start.java

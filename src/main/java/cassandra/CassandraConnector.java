@@ -31,7 +31,7 @@ public class CassandraConnector
     public CassandraConnector( String node, int port )
     {
         clusterBuilder =
-                Cluster.builder().addContactPoints( node ).withPort( port );
+                Cluster.builder().addContactPoints( node ).withCredentials( "hub_user","m01bu1ak" ).withPort( port );
 
         for ( int i = 0; i < CONNECTION_TRY; i++ )
         {

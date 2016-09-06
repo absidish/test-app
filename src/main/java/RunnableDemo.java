@@ -21,7 +21,7 @@ class RunnableDemo implements Runnable
     {
         try
         {
-            for ( int i = 0; i < 100; i++ )
+            for ( int i = 0; i < 1000; i++ )
             {
 
                 if ( threadName.equals( "create" ) )
@@ -80,7 +80,6 @@ class RunnableDemo implements Runnable
     private void deleteUserWithEnv()
     {
         String u = "";
-        HTTPUtil HTTPUtil = new HTTPUtil();
         String url = "%s/rest/users";
 
         try
@@ -120,7 +119,7 @@ class RunnableDemo implements Runnable
     {
 
         String u = "";
-        HTTPUtil HTTPUtil = new HTTPUtil();
+        //        HTTPUtil httpUtil = new HTTPUtil();
         String envsurl = "%s/rest/environments";
 
         try
@@ -160,12 +159,11 @@ class RunnableDemo implements Runnable
     {
 
         String u = "";
-        HTTPUtil HTTPUtil = new HTTPUtil();
-        String getUrl = "%s/rest/v5/users";
+        String urlGetUser = "%s/rest/users";
 
         try
         {
-            u = HTTPUtil.get( format( getUrl, DNS ) );
+            u = HTTPUtil.get( format( urlGetUser, DNS ) );
         }
         catch ( Exception e )
         {
@@ -180,7 +178,7 @@ class RunnableDemo implements Runnable
         int userIndex = ( int ) ( 0 + ( Math.random() * ( uu.length - 0 ) ) );
 
 
-        String url = "%s/rest/add/%s";
+        String url = "%s/rest/users/%s/addenv";
 
         if ( uu.length > 1 )
         {
@@ -199,11 +197,11 @@ class RunnableDemo implements Runnable
     private void createUserWithEnvs()
     {
         String url = "%s/rest/users/%s";
-        HTTPUtil HTTPUtil = new HTTPUtil();
+        HTTPUtil httpUtil = new HTTPUtil();
 
         try
         {
-            HTTPUtil.get( format( url, DNS, "create" ) );
+            httpUtil.get( format( url, DNS, "create" ) );
         }
         catch ( Exception e )
         {

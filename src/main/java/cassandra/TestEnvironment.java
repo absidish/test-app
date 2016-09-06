@@ -3,19 +3,19 @@ package cassandra;
 
 import java.util.UUID;
 
-import javax.persistence.Column;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import com.datastax.driver.mapping.annotations.Column;
+import com.datastax.driver.mapping.annotations.PartitionKey;
+import com.datastax.driver.mapping.annotations.Table;
 
 
-@Table( name = TestEnvironment.TABLE )
+@Table( keyspace = Start.KEYSPACE, name = TestEnvironment.TABLE )
 public class TestEnvironment
 {
 
     public static final String TABLE = "test_environments";
     public static final String USER_BY_ENVIRONMENT = "test_user_by_environment";
 
-    @Id
+    @PartitionKey
     @Column( name = "id" )
     private UUID id;
 
