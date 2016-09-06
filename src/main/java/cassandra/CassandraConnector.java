@@ -75,6 +75,7 @@ public class CassandraConnector
         try
         {
             Cluster newCluster = clusterBuilder.build();
+
             Metadata metadata = newCluster.getMetadata();
 
             LOG.info( String.format( "Connected to cluster: %s%n", metadata.getClusterName() ) );
