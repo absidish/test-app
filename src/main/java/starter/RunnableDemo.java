@@ -24,9 +24,8 @@ class RunnableDemo implements Runnable
     {
         try
         {
-            for ( int i = 0; i < 1000; i++ )
+            for ( int i = 0; i < 100; i++ )
             {
-
                 if ( threadName.equals( "create" ) )
                 {
                     createUserWithEnvs();
@@ -47,7 +46,13 @@ class RunnableDemo implements Runnable
                 {
                     select();
                 }
-                Thread.sleep( 2000 );
+                if ( "select".equals( threadName ) )
+                {
+                    Thread.sleep( 10000 );
+                }
+
+
+                Thread.sleep( 1000 );
             }
         }
         catch ( InterruptedException e )

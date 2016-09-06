@@ -10,13 +10,10 @@ import com.datastax.driver.core.ConsistencyLevel;
 public class Main
 {
 
-    public static Map<String, Long> COUNT = new HashMap();
-
-
     public static void main( String args[] )
     {
-            String[] actions = { "create", "select", "addenv", "delenv", "deleteUser", };
-//                String[] actions = { "delenv", "deleteUser" };
+        String[] actions = { "create", "addenv", "delenv", "deleteUser", "select" };
+        //                String[] actions = { "delenv", "deleteUser" };
 
 
         String[] nodes = { "http://192.168.0.101:4567", "http://192.168.0.104:4567" };

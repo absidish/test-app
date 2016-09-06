@@ -1,3 +1,4 @@
+use hub;
 CREATE TABLE hub.test_users (
     id uuid PRIMARY KEY,
     access_token uuid,

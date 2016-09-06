@@ -21,14 +21,18 @@ import model.User;
 import static java.lang.String.format;
 
 import static spark.Spark.get;
+import static spark.Spark.port;
 
 
 public class Start
 {
+
     private static final Logger log = LoggerFactory.getLogger( Start.class );
     public static final String KEYSPACE = "hub";
     private static CassandraConnector cassandraConnector;
     public static MappingManager mappingSession;
+
+    private static  boolean isLocked = false;
 
 
     private static void init()
@@ -54,65 +58,106 @@ public class Start
 
     private static void startSpark()
     {
+
         get( "/rest/users", ( request, response ) -> {
 
             log.info( "route = {}", "/rest/users" );
-            List<User> testUsers = UserDao.getUsers();
-            List<UUID> list = new ArrayList();
-            testUsers.stream().forEach( testUser -> {
-                list.add( testUser.getId() );
-            } );
+            if ( !isLocked )
+            {
+                List<User> testUsers = UserDao.getUsers();
+                List<UUID> list = new ArrayList();
+                testUsers.stream().forEach( testUser -> {
+                    list.add( testUser.getId() );
+                } );
 
-            log.info( "returned users" );
-            return list.toString();
+                log.info( "returned users" );
+                return list.toString();
+            }
+            else
+            {
+                return "locked";
+            }
         } );
 
         get( "/rest/users/create", ( request, response ) -> {
+
             log.info( "route = {}", "/rest/users/create" );
 
-            UUID envId = UUID.randomUUID();
-            UUID envId1 = UUID.randomUUID();
+            if ( !isLocked )
+            {
+                UUID envId = UUID.randomUUID();
+                UUID envId1 = UUID.randomUUID();
 
-            Environment testEnvironment = new Environment( envId, "env1", "description1" );
-            Environment testEnvironment1 = new Environment( envId1, "env2", "description2" );
+                Environment testEnvironment = new Environment( envId, "env1", "description1" );
+                Environment testEnvironment1 = new Environment( envId1, "env2", "description2" );
 
-            User testUser = UserDao.createUser( testEnvironment, testEnvironment1 );
-            log.info( "user created" );
-            return testUser.getId().toString();
+                User testUser = UserDao.createUser( testEnvironment, testEnvironment1 );
+                log.info( "user created" );
+                return testUser.getId().toString();
+            }
+            else
+            {
+                return "locked";
+            }
         } );
 
         get( "/rest/users/:id/delete", ( request, response ) -> {
             UUID userId = UUID.fromString( request.params( ":id" ) );
             log.info( "route = {}", format( "/rest/users/%s/delete", userId ) );
-            UserDao.delete( userId );
-            log.info( "user deleted" );
-            return "deleted";
+
+            if ( !isLocked )
+            {
+                UserDao.delete( userId );
+
+                log.info( "user deleted" );
+                return "deleted";
+            }
+            else
+            {
+                return "locked";
+            }
         } );
 
         get( "/rest/users/:id/addenv", ( request, response ) -> {
             UUID envId = UUID.randomUUID();
             UUID userId = UUID.fromString( request.params( ":id" ) );
             log.info( "route = {}", format( "/rest/users/%s/addenv", userId ) );
-            Environment testEnvironment = new Environment( envId, "env1", "description1" );
 
-            UserDao.addEnvironment( userId, testEnvironment );
-            log.info("env added to user");
-            return "added";
+            if ( !isLocked )
+            {
+                Environment testEnvironment = new Environment( envId, "env1", "description1" );
+
+                UserDao.addEnvironment( userId, testEnvironment );
+                log.info( "env added to user" );
+                return "added";
+            }
+            else
+            {
+                return "locked";
+            }
         } );
 
 
         get( "/rest/environments", ( request, response ) -> {
-            log.info( "route = {}", "/rest/environments");
-            List<Environment> testEnvironments = EnvironmentDao.getEnvironments();
+            log.info( "route = {}", "/rest/environments" );
 
-            List<UUID> list = new ArrayList();
+            if ( !isLocked )
+            {
+                List<Environment> testEnvironments = EnvironmentDao.getEnvironments();
 
-            testEnvironments.stream().forEach( testEnvironment -> {
-                list.add( testEnvironment.getId() );
-            } );
+                List<UUID> list = new ArrayList();
 
-            log.info( "returned list" );
-            return list.toString();
+                testEnvironments.stream().forEach( testEnvironment -> {
+                    list.add( testEnvironment.getId() );
+                } );
+
+                log.info( "returned list" );
+                return list.toString();
+            }
+            else
+            {
+                return "locked";
+            }
         } );
 
 
@@ -121,66 +166,90 @@ public class Start
             UUID environmentId = UUID.fromString( request.params( ":id" ) );
             log.info( "route = {}", format( "/rest/environments/%s/delete", environmentId ) );
 
-            EnvironmentDao.delete( environmentId );
+            if ( !isLocked )
+            {
+                EnvironmentDao.delete( environmentId );
 
-            log.info( "env deleted" );
-            return "deleted";
+                log.info( "env deleted" );
+                return "deleted";
+            }
+            else
+            {
+                return "locked";
+            }
         } );
 
         get( "/rest/health", ( request, response ) -> {
 
-            log.info( "route = {}", "/rest/health");
 
+            Map<String, String> map = new HashMap<>();
 
-                    Map<String, String> map = new HashMap<>();
-            List<User> testUserList = UserDao.getUsers();
-            List<UUID> uuids = null;
+            log.info( "route = {}", "/rest/health" );
 
-            int n = 0;
-
-            for ( User testUser : testUserList )
+            if ( !isLocked )
             {
-                uuids = UserDao.getUserEnvs( testUser.getId() );
-                if ( uuids != null && !uuids.isEmpty() )
+                isLocked = true;
+                try
                 {
-                    List<Environment> testEnvironments = EnvironmentDao.findIn( uuids );
+                    log.info( "Locked" );
 
-                    if ( testEnvironments != null && !testEnvironments.isEmpty() )
+                    List<User> testUserList = UserDao.getUsers();
+                    List<UUID> uuids = null;
+
+                    int n = 0;
+
+                    for ( User testUser : testUserList )
                     {
-                        if ( uuids.size() != testEnvironments.size() )
+                        uuids = UserDao.getUserEnvs( testUser.getId() );
+                        if ( uuids != null && !uuids.isEmpty() )
                         {
-                            map.put( testUser.getId() + "", "" + uuids.size() + "-" + testEnvironments.size() );
+                            List<Environment> testEnvironments = EnvironmentDao.findIn( uuids );
+
+                            if ( testEnvironments != null && !testEnvironments.isEmpty() )
+                            {
+                                if ( uuids.size() != testEnvironments.size() )
+                                {
+                                    map.put( testUser.getId() + "", "" + uuids.size() + "-" + testEnvironments.size() );
+                                }
+                            }
                         }
                     }
+                    log.info( "users passed" );
+
+                    List<Environment> envs = EnvironmentDao.getEnvironments();
+
+                    User testUser = null;
+                    for ( Environment testEnvironment : envs )
+                    {
+                        UUID userId = EnvironmentDao.getOwnerId( testEnvironment.getId() );
+
+                        if ( userId != null )
+                        {
+                            testUser = UserDao.find( userId );
+                        }
+
+                        if ( testUser == null )
+                        {
+                            map.put( testEnvironment.getId().toString(),
+                                    format( "owner not found envId=%s, ownerId=%s", testEnvironment.getId(), userId ) );
+                        }
+                    }
+
+                    log.info( " health status ={} ", map.isEmpty() );
+                    log.info( "map = {} ", map.toString() );
                 }
+                catch ( Exception e )
+                {
+                    isLocked = false;
+                    log.error( e.getMessage() );
+                }
+                isLocked = false;
+                return map.toString();
             }
-
-            List<Environment> envs = EnvironmentDao.getEnvironments();
-
-            User testUser = null;
-            for ( Environment testEnvironment : envs )
+            else
             {
-                UUID userId = EnvironmentDao.getOwnerId( testEnvironment.getId() );
-
-                if ( userId != null )
-                {
-                    testUser = UserDao.find( userId );
-                }
-
-                if ( testUser == null )
-                {
-                    map.put( testEnvironment.getId().toString(),
-                            format( "owner not found envId=%s, ownerId=%s", testEnvironment.getId(), userId ) );
-                }
+                return "locked";
             }
-
-
-            log.info( " health status ={} ", map.isEmpty() );
-            log.info( "map = {} ", map.toString() );
-
-            return map.toString();
         } );
-
-
     }
 }

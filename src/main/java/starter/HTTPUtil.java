@@ -18,8 +18,16 @@ public class HTTPUtil
     public static int count = 0;
 
 
+
     public static String get( String url ) throws Exception
     {
+
+        if ( url.contains( "lock" ) )
+        {
+            log.info( "locked url =" + url );
+
+            return "";
+        }
         count++;
         SSLUtil.disableCertificateValidation();
         log.info( "url =" + url );
