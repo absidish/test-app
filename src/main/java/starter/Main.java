@@ -1,25 +1,20 @@
 package starter;
 
 
-import java.util.HashMap;
-import java.util.Map;
-
-import com.datastax.driver.core.ConsistencyLevel;
-
-
 public class Main
 {
 
     public static void main( String args[] )
     {
         String[] actions = { "create", "addenv", "delenv", "deleteUser", "select" };
-        //                String[] actions = { "delenv", "deleteUser" };
+        //                        String[] actions = { "delenv", "deleteUser" };
+        //                        String[] actions = { "select" };
 
 
-        String[] nodes = { "http://192.168.0.101:4567", "http://192.168.0.104:4567" };
+        String[] nodes = { "http://192.168.0.101:4567" };
 
 
-        for ( int i = 0; i < 3; i++ )
+        for ( int i = 0; i < 20; i++ )
         {
             for ( String action : actions )
             {

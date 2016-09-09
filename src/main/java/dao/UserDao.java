@@ -4,6 +4,7 @@ package dao;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,9 +16,9 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 
-import starter.Start;
 import model.Environment;
 import model.User;
+import starter.Start;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.in;
@@ -37,7 +38,9 @@ public class UserDao
         statement.setConsistencyLevel( CONSISTENCY_LEVEL );
 
         ResultSet resultSet = Start.mappingSession.getSession().execute( statement );
-        return Start.mappingSession.mapper( User.class ).map( resultSet ).all();
+
+        return Start.mappingSession.mapper( User.class ).map( resultSet ).all().stream()
+                                   .filter( user -> user.getAccessToken() != null ).collect( Collectors.toList() );
     }
 
 
@@ -51,22 +54,25 @@ public class UserDao
         for ( Environment testEnvironment : testEnvironments )
         {
             batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, Environment.TABLE )
-                                            .value( "id", testEnvironment.getId() )
-                                            .value( "name", testEnvironment.getName() )
-                                            .value( "description", testEnvironment.getDescription() ) );
+                                            .value( Environment.ENVIRONMENT_ID, testEnvironment.getId() )
+                                            .value( Environment.ENVIRONMENT_NAME, testEnvironment.getName() )
+                                            .value( Environment.ENVIRONMENT_DESCRIPTION,
+                                                    testEnvironment.getDescription() ) );
 
             batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, User.ENVIRONMENTS_BY_USER )
-                                            .value( "user_id", testUser.getId() )
-                                            .value( "environment_id", testEnvironment.getId() ) );
+                                            .value( User.USER_ID_HELPER, testUser.getId() )
+                                            .value( Environment.ENVIRONMENT_ID_HLPER, testEnvironment.getId() ) );
 
             batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, Environment.USER_BY_ENVIRONMENT )
-                                            .value( "user_id", testUser.getId() )
-                                            .value( "environment_id", testEnvironment.getId() ) );
+                                            .value( User.USER_ID_HELPER, testUser.getId() )
+                                            .value( Environment.ENVIRONMENT_ID_HLPER, testEnvironment.getId() ) );
         }
 
-        batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, User.TABLE ).value( "id", testUser.getId() )
-                                        .value( "login", testUser.getLogin() ).value( "email", testUser.getEmail() )
-                                        .value( "name", testUser.getName() ) );
+        batchStatement
+                .add( QueryBuilder.insertInto( Start.KEYSPACE, User.TABLE ).value( User.USER_ID, testUser.getId() )
+                                  .value( User.USER_LOGIN, testUser.getLogin() )
+                                  .value( User.USER_EMAIL, testUser.getEmail() )
+                                  .value( User.USER_NAME, testUser.getName() ) );
 
 
         batchStatement.setConsistencyLevel( CONSISTENCY_LEVEL );
@@ -77,21 +83,22 @@ public class UserDao
     }
 
 
-    public static Object delete( UUID userId )
+    public static Object deleteUser( UUID userId )
     {
         BatchStatement batchStatement = new BatchStatement();
 
-        List<UUID> envsId = getUserEnvs( userId );
+        List<UUID> envsId = getUserEnvs1( userId );
 
         Statement deleteEnvsRelations = QueryBuilder.delete().from( Start.KEYSPACE, Environment.USER_BY_ENVIRONMENT )
-                                                    .where( in( "environment_id", envsId ) );
-        Statement deleteEnvs =
-                QueryBuilder.delete().from( Start.KEYSPACE, Environment.TABLE ).where( in( "id", envsId ) );
+                                                    .where( in( Environment.ENVIRONMENT_ID, envsId ) );
+        Statement deleteEnvs = QueryBuilder.delete().from( Start.KEYSPACE, Environment.TABLE )
+                                           .where( in( Environment.ENVIRONMENT_ID, envsId ) );
 
         Statement deleteEnvsByUser = QueryBuilder.delete().from( Start.KEYSPACE, User.ENVIRONMENTS_BY_USER )
-                                                 .where( eq( "user_id", userId ) );
+                                                 .where( eq( User.USER_ID_HELPER, userId ) );
 
-        Statement deleteUser = QueryBuilder.delete().from( Start.KEYSPACE, User.TABLE ).where( eq( "id", userId ) );
+        Statement deleteUser =
+                QueryBuilder.delete().from( Start.KEYSPACE, User.TABLE ).where( eq( User.USER_ID, userId ) );
 
 
         batchStatement.add( deleteEnvsRelations );
@@ -105,34 +112,48 @@ public class UserDao
 
         if ( !resultSet.wasApplied() )
         {
-            log.error( " delete user was not applied! statement  =  {}", batchStatement.toString() );
+            log.info( " delete user was not applied! statement  =  {}", batchStatement.toString() );
         }
 
         return resultSet;
     }
 
 
-    private static void printRow( String delete, ResultSet rs )
+    public static ResultSet delete( UUID userId )
     {
-        //        if ( rs != null )
-        //        {
-        //            System.out.println( rs.isExhausted() );
-        //        }
-        //        try
-        //        {
-        //            System.out.println( rs.one().getBool( "applied" ) + "   " + delete );
-        //        }
-        //        catch ( Exception e )
-        //        {
-        //            System.out.println( "Error : " + e.getMessage() );
-        //        }
+        BatchStatement batchStatement = new BatchStatement();
+
+        List<UUID> envsId = getUserEnvironments( userId );
+
+        for ( UUID envId : envsId )
+        {
+            batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, Environment.TABLE )
+                                            .value( Environment.ENVIRONMENT_ID, envId ) );
+            batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, User.ENVIRONMENTS_BY_USER )
+                                            .value( User.USER_ID_HELPER, userId )
+                                            .value( Environment.ENVIRONMENT_ID_HLPER, envId ) );
+
+            batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, Environment.USER_BY_ENVIRONMENT )
+                                            .value( User.USER_ID_HELPER, userId )
+                                            .value( Environment.ENVIRONMENT_ID_HLPER, envId ) );
+        }
+
+        batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, User.TABLE ).value( User.USER_ID, userId ) );
+        batchStatement.setConsistencyLevel( CONSISTENCY_LEVEL );
+        ResultSet resultSet = Start.mappingSession.getSession().execute( batchStatement );
+
+        log.info( "was appied = {}", resultSet.wasApplied() );
+
+        deleteUser( userId );
+
+        return resultSet;
     }
 
 
-    public static List<UUID> getUserEnvs( UUID userId )
+    public static List<UUID> getUserEnvironments( UUID userId )
     {
         Statement statement = QueryBuilder.select().from( Start.KEYSPACE, User.ENVIRONMENTS_BY_USER )
-                                          .where( eq( "user_id", userId ) );
+                                          .where( eq( User.USER_ID_HELPER, userId ) );
 
         statement.setConsistencyLevel( CONSISTENCY_LEVEL );
 
@@ -142,7 +163,31 @@ public class UserDao
         List<UUID> envsId = new ArrayList<>();
         for ( Row row : result )
         {
-            envsId.add( row.getUUID( "environment_id" ) );
+            if ( !row.isNull( Environment.ENVIRONMENT_ACCESS_TOKEN ) )
+            {
+                envsId.add( row.getUUID( Environment.ENVIRONMENT_ID ) );
+            }
+        }
+
+        return envsId;
+    }
+
+
+    public static List<UUID> getUserEnvs1( UUID userId )
+    {
+        Statement statement = QueryBuilder.select().from( Start.KEYSPACE, User.ENVIRONMENTS_BY_USER )
+                                          .where( eq( User.USER_ID_HELPER, userId ) );
+
+        statement.setConsistencyLevel( CONSISTENCY_LEVEL );
+
+        ResultSet result = null;
+        result = Start.mappingSession.getSession().execute( statement );
+
+        List<UUID> envsId = new ArrayList<>();
+        for ( Row row : result )
+        {
+
+            envsId.add( row.getUUID( Environment.ENVIRONMENT_ID_HLPER ) );
         }
 
         return envsId;
@@ -151,7 +196,15 @@ public class UserDao
 
     public static User find( UUID userId )
     {
-        return Start.mappingSession.mapper( User.class ).get( userId );
+        User user = Start.mappingSession.mapper( User.class ).get( userId );
+        if ( user != null && user.getAccessToken() != null )
+        {
+            return user;
+        }
+        else
+        {
+            return null;
+        }
     }
 
 
@@ -160,17 +213,18 @@ public class UserDao
         BatchStatement batchStatement = new BatchStatement();
 
         batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, Environment.TABLE )
-                                        .value( "id", testEnvironment.getId() )
-                                        .value( "name", testEnvironment.getName() )
-                                        .value( "description", testEnvironment.getDescription() ) );
+                                        .value( Environment.ENVIRONMENT_ID, testEnvironment.getId() )
+                                        .value( Environment.ENVIRONMENT_NAME, testEnvironment.getName() )
+                                        .value( Environment.ENVIRONMENT_DESCRIPTION,
+                                                testEnvironment.getDescription() ) );
 
-        batchStatement
-                .add( QueryBuilder.insertInto( Start.KEYSPACE, User.ENVIRONMENTS_BY_USER ).value( "user_id", userId )
-                                  .value( "environment_id", testEnvironment.getId() ) );
+        batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, User.ENVIRONMENTS_BY_USER )
+                                        .value( User.USER_ID_HELPER, userId )
+                                        .value( Environment.ENVIRONMENT_ID_HLPER, testEnvironment.getId() ) );
 
         batchStatement.add( QueryBuilder.insertInto( Start.KEYSPACE, Environment.USER_BY_ENVIRONMENT )
-                                        .value( "user_id", userId )
-                                        .value( "environment_id", testEnvironment.getId() ) );
+                                        .value( User.USER_ID_HELPER, userId )
+                                        .value( Environment.ENVIRONMENT_ID_HLPER, testEnvironment.getId() ) );
 
         batchStatement.setConsistencyLevel( CONSISTENCY_LEVEL );
 
@@ -178,11 +232,13 @@ public class UserDao
     }
 
 
-    public static void save( User testUser )
+    public static void create( User testUser )
     {
-        Statement statement = QueryBuilder.insertInto( Start.KEYSPACE, User.TABLE ).value( "id", testUser.getId() )
-                                          .value( "login", testUser.getLogin() ).value( "email", testUser.getEmail() )
-                                          .value( "name", testUser.getName() );
+        Statement statement =
+                QueryBuilder.insertInto( Start.KEYSPACE, User.TABLE ).value( User.USER_ID, testUser.getId() )
+                            .value( User.USER_LOGIN, testUser.getLogin() ).value( User.USER_EMAIL, testUser.getEmail() )
+                            .value( User.USER_NAME, testUser.getName() )
+                            .value( User.USER_ACCESS_TOKEN, UUID.randomUUID() ).ifNotExists();
 
         statement.setConsistencyLevel( CONSISTENCY_LEVEL );
         Start.mappingSession.getSession().execute( statement );
@@ -192,11 +248,12 @@ public class UserDao
     public static boolean update( User user )
     {
 
-        Statement statement = QueryBuilder.update( Start.KEYSPACE, User.TABLE ).where( eq( "id", user.getId() ) )
-                                          .with( set( "login", user.getLogin() ) )
-                                          .and( set( "email", user.getEmail() ) ).and( set( "name", user.getName() ) )
-                                          .and( set( "access_token", UUID.randomUUID() ) )
-                                          .onlyIf( eq( "access_token", user.getAccessToken() ) );
+        Statement statement =
+                QueryBuilder.update( Start.KEYSPACE, User.TABLE ).where( eq( User.USER_ID, user.getId() ) )
+                            .with( set( User.USER_LOGIN, user.getLogin() ) )
+                            .and( set( User.USER_EMAIL, user.getEmail() ) ).and( set( User.USER_NAME, user.getName() ) )
+                            .and( set( User.USER_ACCESS_TOKEN, UUID.randomUUID() ) )
+                            .onlyIf( eq( User.USER_ACCESS_TOKEN, user.getAccessToken() ) );
 
         statement.setConsistencyLevel( CONSISTENCY_LEVEL );
 

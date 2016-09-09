@@ -19,9 +19,7 @@ import model.Environment;
 import model.User;
 
 import static java.lang.String.format;
-
 import static spark.Spark.get;
-import static spark.Spark.port;
 
 
 public class Start
@@ -32,7 +30,7 @@ public class Start
     private static CassandraConnector cassandraConnector;
     public static MappingManager mappingSession;
 
-    private static  boolean isLocked = false;
+    private static boolean isLocked = false;
 
 
     private static void init()
@@ -45,15 +43,10 @@ public class Start
     public static void main( String[] args )
     {
         init();
-
-        List<User> list = UserDao.getUsers();
-
-        log.info( "zise = {}", list.size() );
-        list.forEach( testUser -> {
-            log.info( "userId = {}", testUser.getId() );
-        } );
         startSpark();
+//        health();
     }
+
 
 
     private static void startSpark()
@@ -168,8 +161,14 @@ public class Start
 
             if ( !isLocked )
             {
-                EnvironmentDao.delete( environmentId );
-
+                try
+                {
+                    EnvironmentDao.delete( environmentId );
+                }
+                catch ( Exception e )
+                {
+                    log.error( e.getMessage() );
+                }
                 log.info( "env deleted" );
                 return "deleted";
             }
@@ -196,11 +195,9 @@ public class Start
                     List<User> testUserList = UserDao.getUsers();
                     List<UUID> uuids = null;
 
-                    int n = 0;
-
                     for ( User testUser : testUserList )
                     {
-                        uuids = UserDao.getUserEnvs( testUser.getId() );
+                        uuids = UserDao.getUserEnvironments( testUser.getId() );
                         if ( uuids != null && !uuids.isEmpty() )
                         {
                             List<Environment> testEnvironments = EnvironmentDao.findIn( uuids );
@@ -214,22 +211,24 @@ public class Start
                             }
                         }
                     }
-                    log.info( "users passed" );
 
                     List<Environment> envs = EnvironmentDao.getEnvironments();
 
                     User testUser = null;
                     for ( Environment testEnvironment : envs )
                     {
+
                         UUID userId = EnvironmentDao.getOwnerId( testEnvironment.getId() );
 
                         if ( userId != null )
                         {
+
                             testUser = UserDao.find( userId );
                         }
 
                         if ( testUser == null )
                         {
+
                             map.put( testEnvironment.getId().toString(),
                                     format( "owner not found envId=%s, ownerId=%s", testEnvironment.getId(), userId ) );
                         }
@@ -241,7 +240,7 @@ public class Start
                 catch ( Exception e )
                 {
                     isLocked = false;
-                    log.error( e.getMessage() );
+                    log.info( "ERROR {}", e.getMessage() );
                 }
                 isLocked = false;
                 return map.toString();
