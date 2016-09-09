@@ -2,6 +2,7 @@ package starter;
 
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ import model.Environment;
 import model.User;
 
 import static java.lang.String.format;
+
 import static spark.Spark.get;
 
 
@@ -27,6 +29,7 @@ public class Start
 
     private static final Logger log = LoggerFactory.getLogger( Start.class );
     public static final String KEYSPACE = "hub";
+
     private static CassandraConnector cassandraConnector;
     public static MappingManager mappingSession;
 
@@ -43,10 +46,140 @@ public class Start
     public static void main( String[] args )
     {
         init();
-        startSpark();
-//        health();
+
+        List<User> users = createUsers();
+        createEnvironments( users );
+
+        selectUsers();
+        selectEnvironments();
+
+//        deleteFiveUsers( UserDao.getUsers() );
+//        deleteFiveEnironments( EnvironmentDao.getEnvironments() );
+
+        selectUsers();
+        selectEnvironments();
+
+        updateUsers( UserDao.getUsers() );
+
+        selectUsers();
+        //
+        //        startSpark();
     }
 
+
+    private static void updateUsers( final List<User> users )
+    {
+        int n = 0;
+        for ( User user : users )
+        {
+            if ( n < 5 )
+            {
+                n++;
+                user.setName( "updatedUser" );
+                UserDao.update( user );
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        n = 0;
+        for ( User user : users )
+        {
+            if ( n < 5 )
+            {
+                n++;
+                user.setName( "updatedUser2" );
+                log.info( "was updated = {}", UserDao.update( user ) );
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+
+    private static void deleteFiveEnironments( List<Environment> environments )
+    {
+        int n = 0;
+        for ( Environment environment : environments )
+        {
+            if ( n < 5 )
+            {
+                n++;
+                EnvironmentDao.delete( environment.getId() );
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+
+    private static void selectEnvironments()
+    {
+        List<Environment> environments = EnvironmentDao.getEnvironments();
+
+        log.info( "environments size = {}", environments.size() );
+        environments.forEach( environment -> {
+            log.info( "environment id = {}", environment.getId() );
+        } );
+    }
+
+
+    private static void selectUsers()
+    {
+        List<User> users = UserDao.getUsers();
+        log.info( "users size = {}", users.size() );
+
+        users.forEach( testUser -> {
+            log.info( "userId = {}", testUser.getId() );
+        } );
+    }
+
+
+    private static void deleteFiveUsers( List<User> users )
+    {
+        int n = 0;
+        for ( User user : users )
+        {
+            if ( n < 5 )
+            {
+                n++;
+                UserDao.delete( user.getId() );
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+
+    private static void createEnvironments( List<User> users )
+    {
+        for ( User user : users )
+        {
+            Environment environment = new Environment( UUID.randomUUID(), "env1", "description1" );
+            UserDao.addEnvironmentToUser( user, environment );
+        }
+    }
+
+
+    private static List<User> createUsers()
+    {
+        List<User> users = new ArrayList<>();
+        for ( int i = 0; i < 5; i++ )
+        {
+            User user = new User( UUID.randomUUID(), "Sydyk", "sydyk@gmail.com", "sydyk" );
+            users.add( user );
+            UserDao.create( user );
+        }
+        return users;
+    }
 
 
     private static void startSpark()
@@ -79,14 +212,15 @@ public class Start
             if ( !isLocked )
             {
                 UUID envId = UUID.randomUUID();
-                UUID envId1 = UUID.randomUUID();
 
                 Environment testEnvironment = new Environment( envId, "env1", "description1" );
-                Environment testEnvironment1 = new Environment( envId1, "env2", "description2" );
+                User user = new User( UUID.randomUUID(), "Sydyk", "sydyk@gmail.com", "sydyk" );
 
-                User testUser = UserDao.createUser( testEnvironment, testEnvironment1 );
                 log.info( "user created" );
-                return testUser.getId().toString();
+
+                UserDao.create( user );
+                UserDao.addEnvironmentToUser( user, testEnvironment );
+                return user.getId().toString();
             }
             else
             {

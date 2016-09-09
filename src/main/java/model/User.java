@@ -21,6 +21,7 @@ public class User
     public static final String USER_EMAIL = "email";
     public static final String USER_LOGIN = "login";
     public static final String USER_ACCESS_TOKEN = "access_token";
+
     public static final String USER_ID_HELPER = "user_id";
 
     @PartitionKey

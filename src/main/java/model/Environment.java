@@ -19,8 +19,8 @@ public class Environment
 
     public static final String ENVIRONMENT_ID = "id";
     public static final String ENVIRONMENT_ID_HLPER = "environment_id";
-    public static final String ENVIRONMENT_NAME = "test_environments";
-    public static final String ENVIRONMENT_DESCRIPTION = "test_environments";
+    public static final String ENVIRONMENT_NAME = "name";
+    public static final String ENVIRONMENT_DESCRIPTION = "description";
     public static final String ENVIRONMENT_ACCESS_TOKEN = "access_token";
 
 

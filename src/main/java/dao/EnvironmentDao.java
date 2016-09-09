@@ -40,12 +40,12 @@ public class EnvironmentDao
         statement.setConsistencyLevel( CONSISTENCY_LEVEL );
 
         return Start.mappingSession.mapper( Environment.class ).map( resultSet ).all().stream()
-                                   .filter( environment -> environment.getAccessToken() == null )
+                                   .filter( environment -> environment.getAccessToken() != null )
                                    .collect( Collectors.toList() );
     }
 
 
-    public static void deleteEnvironment( UUID environmentId )
+    private static void deleteEnvironment( UUID environmentId )
     {
         BatchStatement batchStatement = new BatchStatement();
 
@@ -84,6 +84,7 @@ public class EnvironmentDao
         UUID userId = getOwnerId( environmentId );
 
         Statement deleteEnv = QueryBuilder.insertInto( Start.KEYSPACE, Environment.TABLE )
+                                          .value( Environment.ENVIRONMENT_ACCESS_TOKEN, null )
                                           .value( Environment.ENVIRONMENT_ID, environmentId );
 
         if ( userId != null )
@@ -91,10 +92,12 @@ public class EnvironmentDao
 
             Statement deleteEnvsRelations = QueryBuilder.insertInto( Start.KEYSPACE, Environment.USER_BY_ENVIRONMENT )
                                                         .value( User.USER_ID_HELPER, userId )
+                                                        .value( Environment.ENVIRONMENT_ACCESS_TOKEN, null )
                                                         .value( Environment.ENVIRONMENT_ID_HLPER, environmentId );
 
             Statement deleteEnvsRelations1 = QueryBuilder.insertInto( Start.KEYSPACE, User.ENVIRONMENTS_BY_USER )
                                                          .value( User.USER_ID_HELPER, userId )
+                                                         .value( User.USER_ACCESS_TOKEN, null )
                                                          .value( Environment.ENVIRONMENT_ID_HLPER, environmentId );
 
             batchStatement.add( deleteEnvsRelations );
